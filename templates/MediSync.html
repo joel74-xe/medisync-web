@@ -1,0 +1,648 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>MediSync</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky top bar, scrollable tab strip, one working view at a time; tables and charts scan left to right, status always shown as chip + dot. */
+:root{
+  --bg:#F3F6F7; --surface:#FFFFFF; --surface2:#EAEFF1; --line:#D8DFE3;
+  --ink:#12222A; --ink2:#47585F; --ink3:#72838B;
+  --accent:#0A6C74; --accent-ink:#FFFFFF; --accent-soft:#DAEEEF;
+  --crit:#B8322A; --crit-soft:#FAE4E1; --warn:#9A5F06; --warn-soft:#FAEED5; --good:#256B43; --good-soft:#DFF0E6;
+  --s2:#7B8C97;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D191E; --surface:#14242B; --surface2:#1B2F38; --line:#2A424C;
+  --ink:#E6EEF1; --ink2:#A7BAC2; --ink3:#7F959E;
+  --accent:#4FC1C8; --accent-ink:#06262A; --accent-soft:#143A3F;
+  --crit:#F28074; --crit-soft:#3B201D; --warn:#E5A646; --warn-soft:#392D14; --good:#6FCB95; --good-soft:#163325;
+  --s2:#8EA1AC; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D191E; --surface:#14242B; --surface2:#1B2F38; --line:#2A424C;
+  --ink:#E6EEF1; --ink2:#A7BAC2; --ink3:#7F959E;
+  --accent:#4FC1C8; --accent-ink:#06262A; --accent-soft:#143A3F;
+  --crit:#F28074; --crit-soft:#3B201D; --warn:#E5A646; --warn-soft:#392D14; --good:#6FCB95; --good-soft:#163325;
+  --s2:#8EA1AC; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1240px;margin-inline:auto}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono,td.n,.kpi b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:14px 10px}
+.brand{font-weight:600;font-size:20px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand small{font-weight:400;font-size:13px;color:var(--ink2)}
+.sim-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);border:1px solid var(--line);border-radius:3px;padding:1px 6px}
+.spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl .day{color:var(--ink2);font-size:13px}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:5px 11px;color:var(--ink)}
+.btn:hover{border-color:var(--ink3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn[disabled]{opacity:.45;cursor:default}
+.bell{position:relative}
+.badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--crit);color:#fff;font:500 11px/18px var(--mono);text-align:center}
+
+nav#tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:18px;scrollbar-width:thin}
+nav#tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:9px 12px;color:var(--ink2);white-space:nowrap;margin-bottom:-1px}
+nav#tabs button:hover{color:var(--ink)}
+nav#tabs button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+nav#tabs .cnt{font:11px var(--mono);color:var(--ink3);margin-left:5px}
+
+h2{font-size:15px;margin:0;font-weight:600}
+h3{font-size:12px;margin:0;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2)}
+p.lead{margin:4px 0 0;color:var(--ink2);max-width:70ch}
+.pg-head{display:flex;gap:16px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-main{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media (max-width:900px){.g2,.g3,.g-main{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 14px}
+.kpi span{display:block;font-size:12px;color:var(--ink2)}
+.kpi b{display:block;font-size:24px;font-weight:500;margin-top:2px;letter-spacing:-.02em}
+.kpi i{font-style:normal;font-size:12px;color:var(--ink3)}
+.kpi.crit b{color:var(--crit)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:1px 8px 1px 7px;border-radius:10px;white-space:nowrap}
+.chip i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip.crit{background:var(--crit-soft);color:var(--crit)}
+.chip.short{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--good-soft);color:var(--good)}
+.chip.sur{background:var(--accent-soft);color:var(--accent)}
+.chip.neutral{background:var(--surface2);color:var(--ink2)}
+
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font-size:11.5px;font-weight:500;color:var(--ink2);text-align:left;letter-spacing:.04em;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right}
+td small{display:block;color:var(--ink3);font-size:12px}
+tr.sev-crit td:first-child{box-shadow:inset 3px 0 0 var(--crit)}
+tr.sev-short td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.cbar{display:inline-block;width:70px;height:6px;background:var(--surface2);border-radius:3px;vertical-align:middle;margin-right:8px;overflow:hidden}
+.cbar i{display:block;height:100%;border-radius:3px}
+.cbar i.crit{background:var(--crit)}.cbar i.short{background:var(--warn)}.cbar i.ok{background:var(--good)}.cbar i.sur{background:var(--accent)}
+
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+select,input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:5px 9px;min-width:0}
+input[type=search]{width:200px;max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{background:var(--surface);border:0;padding:5px 12px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+
+.fac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.fac{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:8px;width:100%}
+.fac:hover{border-color:var(--ink3)}
+.fac .nm{font-weight:600}
+.fac .ty{color:var(--ink2);font-size:12.5px}
+.fac dl{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:0}
+.fac dt{font-size:11px;color:var(--ink3)}
+.fac dd{margin:0;font:500 15px var(--mono)}
+
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1;min-width:0}
+.row small{color:var(--ink3);display:block;font-size:12px}
+.stages{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.stages i{display:block;height:4px;border-radius:2px;background:var(--surface2)}
+.stages i.on{background:var(--accent)}
+.stagelbl{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:11px;color:var(--ink3);margin-top:3px}
+.stagelbl b{font-weight:500;color:var(--ink)}
+.tcard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface);text-align:left;width:100%}
+.tcard[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+.prop{border:1px solid var(--line);border-radius:8px;padding:11px 14px;background:var(--surface);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center}
+.prop .why{grid-column:1/-1;color:var(--ink2);font-size:12.5px}
+.route{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.route .arrow{color:var(--ink3)}
+.score{font:500 12px var(--mono);color:var(--ink2);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.note{font-size:12.5px;color:var(--ink2)}
+.empty{padding:22px 8px;text-align:center;color:var(--ink3)}
+
+.hbar{display:grid;grid-template-columns:minmax(110px,170px) minmax(0,1fr) 64px;gap:10px;align-items:center;padding:4px 0;font-size:13px}
+.hbar .t{position:relative;height:12px;background:var(--surface2);border-radius:3px}
+.hbar .t i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.hbar .t u{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1px dashed var(--ink3)}
+.hbar span.v{text-align:right;font:12.5px var(--mono)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg text{font-family:var(--mono);font-size:11px;fill:var(--ink3)}
+svg .gl{stroke:var(--line);stroke-width:1}
+svg .lbl{font-family:var(--sans);fill:var(--ink)}
+.chartbox{overflow-x:auto}
+.mapbox{background:var(--surface2);border-radius:6px}
+.node{cursor:pointer}
+.node:focus-visible circle.hit{stroke:var(--accent);stroke-width:2}
+@keyframes dash{to{stroke-dashoffset:-20}}
+.flow{animation:dash 1.2s linear infinite}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+
+pre.csv{background:var(--surface2);border-radius:6px;padding:10px 12px;overflow:auto;font:12px/1.5 var(--mono);margin:8px 0 0;max-height:220px}
+
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.18);z-index:20;padding:16px;overflow-y:auto;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+#panel .item{padding:9px 0;border-bottom:1px solid var(--line);display:flex;gap:10px}
+#panel .item:last-child{border-bottom:0}
+#panel .item .chip{align-self:flex-start;flex:none}
+#tip{position:fixed;z-index:30;pointer-events:none;background:var(--ink);color:var(--bg);padding:5px 9px;border-radius:5px;font-size:12px;max-width:260px;display:none}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">MediSync <small>Inter-hospital supply matchmaker</small><span class="sim-tag">Simulated data</span></div>
+    <div class="spacer"></div>
+    <div class="ctl">
+      <span class="day" id="day"></span>
+      <button class="btn" id="step" data-act="step">Next day</button>
+      <button class="btn" id="play" data-act="play" aria-pressed="false">Play</button>
+      <button class="btn" data-act="reset">Reset</button>
+      <button class="btn bell" id="bell" data-act="bell">Alerts<span class="badge" id="bellN"></span></button>
+    </div>
+  </header>
+  <nav id="tabs" aria-label="Dashboard sections"></nav>
+  <main id="view"></main>
+</div>
+<aside id="panel" hidden aria-label="Notifications"></aside>
+<div id="tip" role="tooltip"></div>
+
+
+<script>
+(function(){
+'use strict';
+/* ---------- reference data ---------- */
+const DRUGS=[
+ {id:'amox',name:'Amoxicillin 500 mg',unit:'caps',cls:'Essential',base:120,cold:false},
+ {id:'ors',name:'ORS sachets',unit:'sachets',cls:'Essential',base:60,cold:false},
+ {id:'para',name:'Paracetamol 500 mg',unit:'tabs',cls:'Essential',base:200,cold:false},
+ {id:'insu',name:'Insulin glargine',unit:'vials',cls:'Life-saving',base:6,cold:true},
+ {id:'oxy',name:'Oxytocin 10 IU',unit:'amps',cls:'Life-saving',base:8,cold:true},
+ {id:'ceft',name:'Ceftriaxone 1 g',unit:'vials',cls:'Life-saving',base:25,cold:false},
+ {id:'salb',name:'Salbutamol inhaler',unit:'inhalers',cls:'Essential',base:5,cold:false},
+ {id:'sal',name:'Normal saline 500 ml',unit:'bags',cls:'Essential',base:40,cold:false},
+ {id:'arte',name:'Artesunate inj.',unit:'vials',cls:'Life-saving',base:4,cold:false},
+ {id:'met',name:'Metformin 500 mg',unit:'tabs',cls:'Chronic',base:150,cold:false}];
+const FACS=[
+ {id:'F6',name:'Central Referral Hospital',short:'Central Referral',type:'Referral hospital',beds:400,x:.50,y:.50},
+ {id:'F1',name:'Riverside District Hospital',short:'Riverside',type:'District hospital',beds:220,x:.30,y:.38},
+ {id:'F3',name:'St. Mary Mission Hospital',short:'St. Mary',type:'Mission hospital',beds:160,x:.72,y:.28},
+ {id:'F7',name:'Eastbank Maternity Centre',short:'Eastbank',type:'Maternity centre',beds:70,x:.64,y:.82},
+ {id:'F2',name:'Northgate Community Clinic',short:'Northgate',type:'Community clinic',beds:45,x:.46,y:.13},
+ {id:'F5',name:'Hillcrest Clinic',short:'Hillcrest',type:'Community clinic',beds:35,x:.86,y:.62},
+ {id:'F4',name:'Lakeview Primary Health Centre',short:'Lakeview',type:'Primary health centre',beds:30,x:.13,y:.70},
+ {id:'F8',name:'Southfield Rural Clinic',short:'Southfield',type:'Rural clinic',beds:25,x:.30,y:.91}];
+const RESERVE=5, TARGET=10, KEEP=12;   // days of cover: safety reserve, restock target, donor keeps reserve + working buffer
+const TABS=[['overview','Overview'],['inventory','Live inventory'],['shortages','Critical shortages'],['surplus','Available surplus'],['expiring','Expiring soon'],['matching','Smart matching'],['transfers','Transfers & manifests'],['network','Network'],['analytics','Analytics'],['forecast','Predicted shortages']];
+const STAGES=['Approved','Packed','In transit','Delivered'];
+const CLSW={'Life-saving':.6,'Essential':1,'Chronic':1.4};
+
+const $=id=>document.getElementById(id);
+const F=id=>FACS.find(f=>f.id===id), D=id=>DRUGS.find(d=>d.id===id);
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const fx=(n,d=1)=>(Math.round(n*10**d)/10**d).toFixed(d);
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+let S, R;
+/* ---------- state ---------- */
+function build(){
+  R = mulberry(11);
+
+  // 1. Initialize the base state FIRST so the UI never crashes if there's an error
+  S = {
+    day: 0, pairs: [], transfers: [], events: [], wasted: 0, rescued: 0,
+    tid: 240, bid: 5000, mode: 'urgency', tab: 'overview',
+    fac: 'all', stat: 'all', q: '', sel: null, selT: null, selP: null,
+    playing: false, evRead: 0, props: []
+  };
+
+  fetch('/api/data')
+    .then(response => response.json())
+    .then(ext => {
+      // 2. Safety check: if Flask double-encoded the JSON into a string, parse it
+      if (typeof ext === 'string') {
+          ext = JSON.parse(ext);
+      }
+
+      if (ext.DRUGS) {
+        DRUGS.length = 0;
+        ext.DRUGS.forEach(d => DRUGS.push(d));
+      }
+      if (ext.FACS) {
+        FACS.length = 0;
+        ext.FACS.forEach(f => FACS.push(f));
+      }
+
+      // 3. Inject the live data into the safe state
+      S.pairs = ext.pairs || [];
+
+      ev('info', `Live server connected: ${FACS.length} facilities loaded.`);
+      try{const h=location.hash.slice(1);if(TABS.some(t=>t[0]===h))S.tab=h}catch(_){}
+      
+      render();
+    })
+    .catch(err => {
+      console.error("Failed to fetch live data:", err);
+      // Because S is initialized now, this error will actually appear on the UI!
+      ev('crit', 'Could not connect to the live Python server. Check terminal for Flask errors.');
+      render(); 
+    });
+}
+function ev(kind,text){S.events.unshift({day:S.day,kind,text})}
+
+/* ---------- inventory maths ---------- */
+const stock=p=>p.batches.reduce((a,b)=>a+b.qty,0);
+const incoming=p=>S.transfers.filter(t=>t.stage<3&&t.to===p.fac).reduce((a,t)=>a+t.lines.filter(l=>l.drug===p.drug).reduce((x,l)=>x+l.qty,0),0);
+const cover=p=>stock(p)/Math.max(p.use,.01);
+const rawNeed=p=>cover(p)<RESERVE?Math.max(0,Math.ceil(TARGET*p.use-stock(p))):0;
+const needOf=p=>Math.max(0,rawNeed(p)-incoming(p));
+const donatable=p=>Math.max(0,Math.floor(stock(p)-KEEP*p.use));
+const statusOf=p=>{const c=cover(p);return c<2?'crit':c<RESERVE?'short':donatable(p)>0?'sur':'ok'};
+const STL={crit:'Critical',short:'Low',ok:'Stable',sur:'Surplus'};
+const chip=(k,t)=>`<span class="chip ${k}"><i></i>${t}</span>`;
+const urgKey=p=>cover(p)*CLSW[D(p.drug).cls];
+function fefo(p){ // which units will be used before expiry, assuming first-expiry-first-out at current use
+  let consumed=0;const out=[];
+  for(const b of p.batches.slice().sort((a,b)=>a.exp-b.exp)){
+    const left=Math.max(0,b.exp-S.day), avail=p.use*left-consumed, take=Math.max(0,Math.min(b.qty,avail));
+    consumed+=take;out.push({b,left,risk:Math.max(0,b.qty-take)});
+  }return out;
+}
+const atRisk=p=>fefo(p).reduce((a,x)=>a+x.risk,0);
+const minExp=p=>p.batches.length?Math.min(...p.batches.map(b=>b.exp))-S.day:null;
+const dist=(a,b)=>{const A=F(a),B=F(b);return Math.round(Math.hypot((A.x-B.x)*180,(A.y-B.y)*100))};
+const transitDays=km=>0;
+const P=(fac,drug)=>S.pairs.find(p=>p.fac===fac&&p.drug===drug);
+
+/* ---------- matching engine ---------- */
+function allocate(sh,avail,mode){
+  const need=sh.map(s=>s.need), tot=need.reduce((a,b)=>a+b,0);
+  if(avail>=tot)return need.slice();
+  const q=sh.map(()=>0);
+  if(mode==='urgency'){let r=avail;sh.forEach((s,i)=>{q[i]=Math.min(s.need,r);r-=q[i]});return q}
+  const w=sh.map(s=>s.need*(s.crit?2:1));let r=avail;
+  for(let it=0;it<8&&r>.5;it++){
+    const act=sh.map((s,i)=>i).filter(i=>q[i]<need[i]-.01), W=act.reduce((a,i)=>a+w[i],0);
+    if(!act.length)break;let used=0;
+    for(const i of act){const give=Math.min(need[i]-q[i],r*w[i]/W);q[i]+=give;used+=give}
+    r-=used;
+  }
+  return q.map(x=>Math.floor(x));
+}
+function computeMatches(mode){
+  const lines=[],rows=[];
+  for(const d of DRUGS){
+    const sh=S.pairs.filter(p=>p.drug===d.id&&needOf(p)>0).map(p=>({p,need:needOf(p),crit:cover(p)<2})).sort((a,b)=>urgKey(a.p)-urgKey(b.p));
+    if(!sh.length)continue;
+    const donors=S.pairs.filter(p=>p.drug===d.id&&donatable(p)>0).map(p=>({p,rem:donatable(p),risk:atRisk(p),bs:p.batches.filter(b=>b.exp>S.day).sort((a,b)=>a.exp-b.exp).map(b=>({id:b.id,qty:Math.floor(b.qty),exp:b.exp}))}));
+    const avail=donors.reduce((a,x)=>a+x.rem,0), alloc=allocate(sh,avail,mode);
+    sh.forEach((s,i)=>{
+      let left=Math.floor(alloc[i]),got=0;
+      while(left>0){
+        const c=donors.filter(x=>x.rem>0).map(x=>{
+          const km=dist(x.p.fac,s.p.fac),days=transitDays(km);
+          const ok=x.bs.filter(b=>b.qty>0&&b.exp-S.day>days+7);
+          return {x,km,days,ok,usable:Math.min(x.rem,ok.reduce((a,b)=>a+b.qty,0))};
+        }).filter(c=>c.usable>=1);
+        if(!c.length)break;
+        const maxKm=Math.max(...c.map(z=>z.km),1);
+        c.forEach(z=>{z.er=Math.min(1,z.x.risk/Math.max(1,Math.min(left,z.usable)));z.prox=1-z.km/(maxKm*1.2);z.score=.45*z.er+.35*z.prox+.2*Math.min(1,z.usable/left)});
+        c.sort((a,b)=>b.score-a.score);const best=c[0];
+        let take=Math.min(left,best.usable);const taken=take,bl=[];
+        for(const b of best.ok){if(take<=0)break;const u=Math.min(b.qty,take);if(u>0){b.qty-=u;take-=u;bl.push({id:b.id,qty:u,exp:b.exp})}}
+        const qty=taken-take;best.x.rem-=qty;left-=qty;got+=qty;
+        const risky=best.x.risk>0;
+        lines.push({drug:d.id,from:best.x.p.fac,to:s.p.fac,qty,batches:bl,km:best.km,days:best.days,score:best.score,crit:s.crit,
+          why:`${F(best.x.p.fac).short} holds ${fmt(donatable(best.x.p))} ${D(d.id).unit} above its reserve${risky?` and about ${fmt(best.x.risk)} will expire unused`:''}; ${best.km} km away, ${best.days} d transit. ${F(s.p.fac).short} has ${fx(cover(s.p))} days of cover.`});
+        if(qty<1)break;
+      }
+      rows.push({drug:d.id,to:s.p.fac,need:s.need,alloc:got,crit:s.crit});
+    });
+  }
+  const fills=rows.map(r=>r.alloc/r.need), n=fills.length||1;
+  const jain=fills.length?(fills.reduce((a,b)=>a+b,0)**2)/(n*fills.reduce((a,b)=>a+b*b,0)||1):1;
+  const cr=rows.filter(r=>r.crit), critMet=cr.length?cr.reduce((a,r)=>a+r.alloc,0)/cr.reduce((a,r)=>a+r.need,0):1;
+  return {lines,rows,jain,critMet,need:rows.reduce((a,r)=>a+r.need,0),alloc:rows.reduce((a,r)=>a+r.alloc,0)};
+}
+function approve(ls,silent){
+  const groups={};ls.forEach(l=>{(groups[l.from+'>'+l.to]=groups[l.from+'>'+l.to]||[]).push(l)});
+  let last;
+  for(const k in groups){
+    const g=groups[k];
+    for(const l of g)for(const b of l.batches){const pb=P(l.from,l.drug).batches.find(x=>x.id===b.id);if(pb)pb.qty-=b.qty}
+    S.pairs.forEach(p=>p.batches=p.batches.filter(b=>b.qty>.5));
+    const km=g[0].km,days=transitDays(km);
+    last={id:'T-'+(S.tid++),from:g[0].from,to:g[0].to,lines:g.map(l=>({drug:l.drug,qty:l.qty,batches:l.batches})),km,total:0,elapsed:2,stage:2,start:S.day};
+    S.transfers.unshift(last);
+    if(!silent)ev('ok',`${last.id} approved: ${F(last.from).short} to ${F(last.to).short}, ${g.length} line${g.length>1?'s':''}.`);
+  }
+  return last;
+}
+const stageOf=t=>t.elapsed<1?0:t.elapsed<2?1:t.elapsed<t.total?2:3;
+
+/* ---------- forecasting ---------- */
+function fit(h){const n=h.length,mx=(n-1)/2,my=h.reduce((a,b)=>a+b,0)/n;let sxy=0,sxx=0;h.forEach((y,i)=>{sxy+=(i-mx)*(y-my);sxx+=(i-mx)**2});const b=sxy/sxx;return {a:my-b*mx,b}}
+function project(p,days){
+  const {a,b}=fit(p.hist.slice(-10)),n=10;let st=stock(p)+incoming(p);const pts=[{t:0,stock:st,use:a+b*(n-1)}];
+  for(let t=1;t<=days;t++){const u=Math.max(.05,a+b*(n-1+t));st=Math.max(0,st-u);pts.push({t,stock:st,use:u})}
+  let hit=null;for(const q of pts){if(q.t>0&&q.stock/Math.max(q.use,.05)<RESERVE){hit=q.t;break}}
+  return {pts,hit,slope:b/Math.max(a+b*(n-1),.01)};
+}
+
+/* ---------- simulation ---------- */
+function tick(){
+  S.day++;
+  for(const p of S.pairs){
+    p.use=Math.min(p.base*3,p.use*(1+p.g));
+    const need=p.use*(.9+R()*.2);p.hist.push(need);p.hist.shift();
+    p.batches.sort((a,b)=>a.exp-b.exp);let c=need;
+    for(const b of p.batches){const t=Math.min(b.qty,c);b.qty-=t;c-=t}
+    for(const b of p.batches)if(b.exp<=S.day&&b.qty>.5){S.wasted+=b.qty;ev('crit',`${fmt(b.qty)} ${D(p.drug).unit} of ${D(p.drug).name} expired at ${F(p.fac).short}.`)}
+    p.batches=p.batches.filter(b=>b.qty>.5&&b.exp>S.day);
+    if((S.day+p.phase)%7===0)p.batches.push({id:'B'+(S.bid++),qty:Math.round(p.use*(2+R()*3)),exp:S.day+150+Math.round(R()*100)});
+  }
+  for(const t of S.transfers){
+    if(t.stage>=3)continue;t.elapsed+=1;const st=stageOf(t);
+    if(st===3){t.stage=3;t.done=S.day;
+      for(const l of t.lines){const p=P(t.to,l.drug);for(const b of l.batches)p.batches.push({id:b.id,qty:b.qty,exp:b.exp});S.rescued+=l.qty}
+      ev('ok',`${t.id} delivered to ${F(t.to).short}: ${t.lines.map(l=>fmt(l.qty)+' '+D(l.drug).name).join(', ')}.`);
+    }else t.stage=st;
+  }
+  S.transfers=S.transfers.filter(t=>t.stage<3||S.day-t.done<=6);
+}
+
+/* ---------- derived views of state ---------- */
+function derive(){
+  const sh=S.pairs.filter(p=>cover(p)<RESERVE).sort((a,b)=>urgKey(a)-urgKey(b));
+  const sur=S.pairs.filter(p=>donatable(p)>0).sort((a,b)=>atRisk(b)-atRisk(a)||donatable(b)-donatable(a));
+  const exp=[];S.pairs.forEach(p=>fefo(p).forEach(x=>{if(x.left<=60)exp.push({p,b:x.b,left:x.left,risk:x.risk})}));exp.sort((a,b)=>a.left-b.left);
+  const m=computeMatches(S.mode);S.props=m.lines;
+  const act=S.transfers.filter(t=>t.stage<3);
+  return {sh,sur,exp,m,act,crit:sh.filter(p=>cover(p)<2)};
+}
+const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0};
+const dateStr=off=>{const d=new Date();d.setDate(d.getDate()+off);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})};
+const unit=id=>D(id).unit;
+
+/* ---------- small ui parts ---------- */
+const covBar=p=>{const c=cover(p),k=statusOf(p);return `<span class="cbar"><i class="${k}" style="width:${Math.min(100,c/20*100)}%"></i></span>${fx(c)}`};
+function pageHead(t,lead,extra=''){return `<div class="pg-head"><div><h2>${t}</h2><p class="lead">${lead}</p></div>${extra}</div>`}
+const kpi=(l,v,s,k='')=>`<div class="kpi ${k}"><span>${l}</span><b>${v}</b><i>${s}</i></div>`;
+function facName(id){return F(id).short}
+
+/* ---------- views ---------- */
+function vOverview(C){
+  const exp60=C.exp.reduce((a,x)=>a+x.risk,0), move=C.m.alloc;
+  const incNeed=C.sh.reduce((a,p)=>a+rawNeed(p),0), covered=incNeed?Math.min(1,(incNeed-C.sh.reduce((a,p)=>a+needOf(p),0)+C.m.alloc)/incNeed):1;
+  const fac=FACS.map(f=>{
+    const fp=S.pairs.filter(p=>p.fac===f.id), nc=fp.filter(p=>cover(p)<2).length, ns=fp.filter(p=>cover(p)<RESERVE).length;
+    const nsu=fp.filter(p=>donatable(p)>0).length, ne=fp.reduce((a,p)=>a+p.batches.filter(b=>b.exp-S.day<=30).length,0);
+    const k=nc?'crit':ns?'short':'ok';
+    return `<button class="fac" data-act="fac" data-id="${f.id}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><div class="nm">${f.name}</div><div class="ty">${f.type} · ${f.beds} beds</div></div>${chip(k,nc?nc+' critical':ns?ns+' low':'Stable')}</div>
+    <dl><div><dt>Low</dt><dd>${ns}</dd></div><div><dt>Surplus</dt><dd>${nsu}</dd></div><div><dt>Expiring</dt><dd>${ne}</dd></div><div><dt>Cover</dt><dd>${fx(med(fp.map(cover)),0)}d</dd></div></dl></button>`}).join('');
+  const shRows=C.sh.slice(0,6).map(p=>{const inc=incoming(p);return `<div class="row"><div class="grow"><b>${D(p.drug).name}</b> at ${facName(p.fac)}<small>${fx(cover(p))} days of cover · needs ${fmt(rawNeed(p))} ${unit(p.drug)}${inc?` · ${fmt(inc)} incoming`:''}</small></div>${chip(cover(p)<2?'crit':'short',cover(p)<2?'Critical':'Low')}</div>`}).join('')||'<div class="empty">No shortages right now.</div>';
+  const exRows=C.exp.filter(x=>x.risk>=1).slice(0,5).map(x=>`<div class="row"><div class="grow"><b>${D(x.p.drug).name}</b> at ${facName(x.p.fac)}<small>${fmt(x.risk)} of ${fmt(x.b.qty)} ${unit(x.p.drug)} likely unused · batch ${x.b.id}</small></div><span class="mono">${x.left} d</span></div>`).join('')||'<div class="empty">Nothing is on course to expire unused.</div>';
+  const trRows=C.act.slice(0,3).map(t=>transferCard(t,false)).join('')||'<div class="empty">No transfers in progress.</div>';
+  return `<div class="kpis">
+    ${kpi('Facilities reporting',FACS.length,'10 medicines tracked')}
+    ${kpi('Critical shortages',C.crit.length,`${C.sh.length} below ${RESERVE} days of cover`,C.crit.length?'crit':'')}
+    ${kpi('Surplus available',fmt(C.sur.reduce((a,p)=>a+donatable(p),0)),'units above donor reserve')}
+    ${kpi('Likely to expire unused',fmt(exp60),'next 60 days')}
+    ${kpi('Transfers in progress',C.act.length,`${fmt(S.rescued)} units delivered so far`)}
+    ${kpi('Need covered',Math.round(covered*100)+'%','incoming plus proposed matches')}</div>
+  <div class="grid g-main"><div class="stack">
+    <div class="panel"><div class="panel-head"><h3>Critical shortages</h3><button class="btn sm" data-act="tab" data-id="shortages">All shortages</button></div>${shRows}</div>
+    <div class="panel"><div class="panel-head"><h3>Expiring soon</h3><button class="btn sm" data-act="tab" data-id="expiring">All batches</button></div>${exRows}</div>
+  </div><div class="stack">
+    <div class="panel"><div class="panel-head"><h3>Smart matching</h3></div>
+      <p style="margin:0 0 10px"><b class="mono">${C.m.lines.length}</b> proposed transfers would move <b class="mono">${fmt(C.m.alloc)}</b> units and meet <b class="mono">${Math.round(C.m.alloc/Math.max(1,C.m.need)*100)}%</b> of the open need.</p>
+      <button class="btn primary" data-act="tab" data-id="matching">Review matches</button></div>
+    <div class="panel"><div class="panel-head"><h3>Active transfers</h3><button class="btn sm" data-act="tab" data-id="transfers">Manifests</button></div>${trRows}</div>
+  </div></div>
+  <div style="margin-top:20px"><div class="panel-head"><h3>Hospitals and clinics</h3><span class="note">Select one to see its stock</span></div><div class="fac-grid">${fac}</div></div>`;
+}
+function invRows(){
+  let ps=S.pairs.slice();
+  if(S.fac!=='all')ps=ps.filter(p=>p.fac===S.fac);
+  if(S.stat!=='all')ps=ps.filter(p=>statusOf(p)===S.stat);
+  const q=S.q.trim().toLowerCase();if(q)ps=ps.filter(p=>D(p.drug).name.toLowerCase().includes(q)||F(p.fac).name.toLowerCase().includes(q));
+  ps.sort((a,b)=>cover(a)-cover(b));
+  if(!ps.length)return '<tr><td colspan="7" class="empty">No stock lines match these filters.</td></tr>';
+  return ps.map(p=>{const k=statusOf(p),e=minExp(p),inc=incoming(p);
+    
+    // --- AI INTEGRATION: Create the badge if SVM detects a surge ---
+    const aiBadge = p.ai_surge_risk ? `<span style="margin-left:8px" class="chip crit" data-tip="SVM Predicted Outbreak based on 14-day curve"><i></i>AI Risk: ${p.ai_confidence}</span>` : '';
+    
+    return `<tr class="${k==='crit'?'sev-crit':k==='short'?'sev-short':''}"><td>${F(p.fac).name}</td><td>${D(p.drug).name}<small>${D(p.drug).cls}${D(p.drug).cold?' · cold chain':''}</small></td>
+    <td class="n">${fmt(stock(p))}<small>${unit(p.drug)}${inc?` · +${fmt(inc)} incoming`:''}</small></td><td class="n">${fx(p.use)}</td><td class="n">${covBar(p)}</td><td class="n">${e==null?'—':e+' d'}</td>
+    <td>${chip(k,STL[k])}${aiBadge}</td></tr>`}).join('');
+}
+function vInventory(){
+  const fo=['<option value="all">All facilities</option>'].concat(FACS.map(f=>`<option value="${f.id}"${S.fac===f.id?' selected':''}>${f.name}</option>`)).join('');
+  const so=[['all','Any status'],['crit','Critical'],['short','Low'],['ok','Stable'],['sur','Surplus']].map(([v,l])=>`<option value="${v}"${S.stat===v?' selected':''}>${l}</option>`).join('');
+  return pageHead('Live inventory','Stock on hand for every facility and medicine, lowest cover first. Cover is stock divided by daily use.',
+    `<div class="filters"><select id="fFac" aria-label="Facility">${fo}</select><select id="fStat" aria-label="Status">${so}</select><input type="search" id="fQ" placeholder="Search medicine" value="${S.q.replace(/"/g,'')}" aria-label="Search medicine"></div>`)+
+  `<div class="panel tbl"><table><thead><tr><th>Facility</th><th>Medicine</th><th class="n">On hand</th><th class="n">Use / day</th><th class="n">Cover (days)</th><th class="n">Earliest expiry</th><th>Status</th></tr></thead><tbody id="invBody">${invRows()}</tbody></table></div>`;
+}
+function vShortages(C){
+  const rows=C.sh.map(p=>{const k=cover(p)<2?'crit':'short',inc=incoming(p),n=needOf(p),pr=C.m.lines.filter(l=>l.to===p.fac&&l.drug===p.drug).reduce((a,l)=>a+l.qty,0);
+    return `<tr class="sev-${k}"><td>${D(p.drug).name}<small>${D(p.drug).cls}</small></td><td>${F(p.fac).name}</td><td class="n">${covBar(p)}</td><td class="n">${fmt(stock(p))}</td><td class="n">${fmt(rawNeed(p))}</td><td class="n">${inc?fmt(inc):'—'}</td>
+    <td>${n===0?chip('ok','Covered in transit'):pr>=n?chip('sur','Match ready'):pr>0?chip('short','Partly matched'):chip('crit','No donor found')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No facility is below the reserve.</td></tr>';
+  return pageHead('Critical shortages',`Medicines with fewer than ${RESERVE} days of cover. Critical means under 2 days. Life-saving medicines rank first.`)+
+  `<div class="panel tbl"><table><thead><tr><th>Medicine</th><th>Facility</th><th class="n">Cover (days)</th><th class="n">On hand</th><th class="n">Needed</th><th class="n">Incoming</th><th>Matching</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function vSurplus(C){
+  const rows=C.sur.map(p=>{const r=atRisk(p),e=minExp(p);return `<tr><td>${D(p.drug).name}</td><td>${F(p.fac).name}</td><td class="n">${fmt(stock(p))}</td><td class="n">${fx(cover(p))}</td><td class="n"><b>${fmt(donatable(p))}</b> <small style="display:inline">${unit(p.drug)}</small></td><td class="n">${r>=1?chip('short',fmt(r)+' unused'):chip('ok','None')}</td><td class="n">${e} d</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No facility holds stock above its reserve.</td></tr>';
+  return pageHead('Available surplus',`Units a facility can give away and still keep ${RESERVE} days of reserve plus ${KEEP-RESERVE} days of working stock.`)+
+  `<div class="panel tbl"><table><thead><tr><th>Medicine</th><th>Donor</th><th class="n">On hand</th><th class="n">Cover (days)</th><th class="n">Can donate</th><th class="n">Expected waste</th><th class="n">Earliest expiry</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function vExpiring(C){
+  const wantsIt=d=>S.pairs.some(p=>p.drug===d&&needOf(p)>0);
+  const rows=C.exp.map(x=>{const k=x.left<=14?'crit':x.left<=30?'short':'neutral';return `<tr><td>${D(x.p.drug).name}<small>batch ${x.b.id}</small></td><td>${F(x.p.fac).name}</td><td class="n">${fmt(x.b.qty)}</td><td class="n">${fmt(x.risk)}</td><td class="n">${chip(k,x.left+' d')}</td><td class="n mono">${dateStr(x.left)}</td><td>${x.risk>=1?(wantsIt(x.p.drug)?chip('sur','Another facility needs it'):chip('neutral','No current taker')):chip('ok','Will be used')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No batch expires within 60 days.</td></tr>';
+  return pageHead('Expiring soon','Batches that expire within 60 days. Expected waste is what the facility will not use before the date at its current rate.')+
+  `<div class="panel tbl"><table><thead><tr><th>Medicine</th><th>Facility</th><th class="n">Batch qty</th><th class="n">Expected waste</th><th class="n">Time left</th><th class="n">Expires</th><th>Opportunity</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function vMatching(C){
+  const other=computeMatches(S.mode==='urgency'?'fair':'urgency');
+  const A=S.mode==='urgency'?C.m:other, B=S.mode==='urgency'?other:C.m;
+  const byFac={};C.m.rows.forEach(r=>{const o=byFac[r.to]=byFac[r.to]||{need:0,alloc:0,crit:0};o.need+=r.need;o.alloc+=r.alloc;if(r.crit)o.crit++});
+  const frows=Object.keys(byFac).map(id=>{const o=byFac[id],f=o.alloc/o.need;return `<div class="hbar"><span>${F(id).short}${o.crit?` <span class="note">(${o.crit} critical)</span>`:''}</span><span class="t"><i style="width:${f*100}%;background:var(--accent)"></i></span><span class="v">${Math.round(f*100)}%</span></div>`}).join('')||'<div class="empty">No open need.</div>';
+  const cards=C.m.lines.map((l,i)=>`<div class="prop"><div><div class="route"><b>${facName(l.from)}</b><span class="arrow">to</span><b>${facName(l.to)}</b>${l.crit?chip('crit','Critical'):''}</div>
+    <div style="margin-top:3px"><span class="mono"><b>${fmt(l.qty)}</b> ${unit(l.drug)}</span> of ${D(l.drug).name}${D(l.drug).cold?' <span class="note">· cold chain</span>':''}</div></div>
+    <div style="display:flex;gap:8px;align-items:center"><span class="score" data-tip="Match score: expiry pressure 45%, distance 35%, donor surplus 20%">${fx(l.score,2)}</span><button class="btn primary sm" data-act="approve" data-i="${i}">Approve</button></div>
+    <div class="why">${l.why}</div></div>`).join('')||'<div class="panel empty">No matches to propose. Every shortage is covered or has no donor.</div>';
+  const scarce=C.m.rows.filter(r=>r.alloc<r.need).length;
+  return pageHead('Smart matching','The engine ranks shortages by urgency, takes stock from the batches that expire first, and never takes a donor below its reserve.',
+    `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="seg" role="group" aria-label="Allocation rule"><button data-act="mode" data-id="urgency" aria-pressed="${S.mode==='urgency'}">Urgency first</button><button data-act="mode" data-id="fair" aria-pressed="${S.mode==='fair'}">Fair share</button></div><button class="btn primary" data-act="approveAll"${C.m.lines.length?'':' disabled'}>Approve all (${C.m.lines.length})</button></div>`)+
+  `<div class="grid g-main"><div class="stack">${cards}</div><div class="stack">
+   <div class="panel"><div class="panel-head"><h3>Fair allocation</h3></div>
+     <p class="note" style="margin:0 0 10px">${scarce?`${scarce} shortage${scarce>1?'s':''} cannot be filled completely because donors run out. `:'Donors can cover every shortage, so both rules give the same result. '}Urgency first fills the most urgent facility fully before the next. Fair share splits scarce stock in proportion to need, with critical shortages weighted double.</p>
+     <div class="tbl"><table><thead><tr><th>Rule</th><th class="n">Critical need met</th><th class="n">Fairness</th></tr></thead><tbody>
+       <tr><td>Urgency first${S.mode==='urgency'?' (active)':''}</td><td class="n">${Math.round(A.critMet*100)}%</td><td class="n">${fx(A.jain,2)}</td></tr>
+       <tr><td>Fair share${S.mode==='fair'?' (active)':''}</td><td class="n">${Math.round(B.critMet*100)}%</td><td class="n">${fx(B.jain,2)}</td></tr></tbody></table></div>
+     <p class="note" style="margin:8px 0 0">Fairness is Jain's index of fill rates: 1.00 means every facility is filled equally.</p></div>
+   <div class="panel"><div class="panel-head"><h3>Share of need filled</h3></div>${frows}</div></div></div>`;
+}
+function transferCard(t,sel){
+  const st=t.stage<3?stageOf(t):3, units=t.lines.reduce((a,l)=>a+l.qty,0);
+  return `<button class="tcard" data-act="selT" data-id="${t.id}" aria-pressed="${sel&&S.selT===t.id}" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><div><b class="mono">${t.id}</b> <span class="note">${facName(t.from)} to ${facName(t.to)}</span></div>${chip(st===3?'ok':'sur',STAGES[st])}</div>
+   <div class="note" style="margin-top:2px">${t.lines.length} line${t.lines.length>1?'s':''} · ${fmt(units)} units · ${t.km} km</div>
+   <div class="stages">${STAGES.map((s,i)=>`<i class="${i<=st?'on':''}"></i>`).join('')}</div><div class="stagelbl">${STAGES.map((s,i)=>i===st?`<b>${s}</b>`:`<span>${s}</span>`).join('')}</div></button>`;
+}
+function manifestCsv(t){
+  const rows=['transfer_id,from,to,medicine,batch,quantity,unit,expiry,handling'];
+  for(const l of t.lines)for(const b of l.batches)rows.push([t.id,F(t.from).name,F(t.to).name,D(l.drug).name,b.id,b.qty,unit(l.drug),dateStr(b.exp-S.day),D(l.drug).cold?'cold chain 2-8C':'ambient'].map(v=>/,/.test(String(v))?`"${v}"`:v).join(','));
+  return rows.join('\n');
+}
+function vTransfers(C){
+  const all=S.transfers, t=all.find(x=>x.id===S.selT)||all[0];
+  const list=all.map(x=>transferCard(x,true)).join('')||'<div class="panel empty">No transfers yet. Approve a match to create one.</div>';
+  let man='<div class="panel empty">Select a transfer to see its manifest.</div>';
+  if(t){const csv=manifestCsv(t);
+    man=`<div class="panel"><div class="panel-head"><div><h3>Manifest ${t.id}</h3><div class="note" style="margin-top:3px">${F(t.from).name} to ${F(t.to).name} · ${t.km} km · dispatched day ${t.start}</div></div><button class="btn sm" data-act="copy">Copy CSV</button></div>
+    <div class="tbl"><table><thead><tr><th>Medicine</th><th>Batch</th><th class="n">Qty</th><th class="n">Expiry</th><th>Handling</th></tr></thead><tbody>${t.lines.map(l=>l.batches.map(b=>`<tr><td>${D(l.drug).name}</td><td class="mono">${b.id}</td><td class="n">${fmt(b.qty)} <small style="display:inline">${unit(l.drug)}</small></td><td class="n mono">${dateStr(b.exp-S.day)}</td><td>${D(l.drug).cold?chip('short','Cold chain 2–8 °C'):chip('neutral','Ambient')}</td></tr>`).join('')).join('')}</tbody></table></div>
+    <pre class="csv" id="csv">${csv}</pre><div class="note" id="copied" style="margin-top:6px" aria-live="polite"></div></div>`}
+  return pageHead('Transfers and manifests','Every approved transfer, its stage, and a printable-ready manifest listing batch, quantity and expiry.')+
+  `<div class="grid g-main" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)"><div>${list}</div><div>${man}</div></div>`;
+}
+function vNetwork(C){
+  const W=800,H=460,sel=S.sel&&F(S.sel)?S.sel:null;
+  const worst=id=>{const fp=S.pairs.filter(p=>p.fac===id);return fp.some(p=>cover(p)<2)?'crit':fp.some(p=>cover(p)<RESERVE)?'short':'ok'};
+  const col={crit:'var(--crit)',short:'var(--warn)',ok:'var(--good)'};
+  const lines=C.act.map(t=>{const a=F(t.from),b=F(t.to),pr=Math.min(1,t.elapsed/t.total);
+    return `<line class="flow" x1="${a.x*W}" y1="${a.y*H}" x2="${b.x*W}" y2="${b.y*H}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4"/><circle cx="${a.x*W+(b.x-a.x)*W*pr}" cy="${a.y*H+(b.y-a.y)*H*pr}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" data-tip="${t.id}: ${STAGES[stageOf(t)]}"/>`}).join('');
+  const props=C.m.lines.map(l=>{const a=F(l.from),b=F(l.to);return `<line x1="${a.x*W}" y1="${a.y*H}" x2="${b.x*W}" y2="${b.y*H}" stroke="var(--ink3)" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>`}).join('');
+  const nodes=FACS.map(f=>{const k=worst(f.id),r=9+Math.sqrt(f.beds)*.7,x=f.x*W,y=f.y*H,anchor=f.x>.75?'end':f.x<.2?'start':'middle',dx=f.x>.75?-r-6:f.x<.2?r+6:0,dy=anchor==='middle'?r+15:4;
+    return `<g class="node" tabindex="0" role="button" aria-label="${f.name}" data-act="selN" data-id="${f.id}"><circle class="hit" cx="${x}" cy="${y}" r="${r}" fill="${col[k]}" fill-opacity=".18" stroke="${col[k]}" stroke-width="${sel===f.id?4:2}"/><circle cx="${x}" cy="${y}" r="${r*.4}" fill="${col[k]}"/><text class="lbl" x="${x+dx}" y="${y+dy}" text-anchor="${anchor}" style="font-size:12px">${f.short}</text></g>`}).join('');
+  let side='<div class="panel empty">Select a facility on the map.</div>';
+  if(sel){const f=F(sel),fp=S.pairs.filter(p=>p.fac===sel).sort((a,b)=>cover(a)-cover(b)).slice(0,6),k=worst(sel);
+    side=`<div class="panel"><div class="panel-head"><div><h2>${f.name}</h2><div class="note">${f.type} · ${f.beds} beds</div></div>${chip(k,k==='crit'?'Critical':k==='short'?'Low stock':'Stable')}</div>
+    ${fp.map(p=>`<div class="row"><div class="grow">${D(p.drug).name}<small>${fmt(stock(p))} ${unit(p.drug)}</small></div><span class="mono">${fx(cover(p))} d</span>${chip(statusOf(p),STL[statusOf(p)])}</div>`).join('')}
+    <div style="margin-top:10px"><button class="btn sm" data-act="fac" data-id="${f.id}">Open full inventory</button></div></div>`}
+  return pageHead('Network','Facility map. Ring colour is the facility’s worst stock status; moving dots are transfers in progress; faint dotted lines are proposed matches.')+
+  `<div class="grid g-main"><div class="panel"><div class="chartbox"><svg class="mapbox" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Facility network map">${props}${lines}${nodes}</svg></div>
+   <div class="legend" style="margin:10px 0 0"><span><i style="background:var(--crit)"></i>Critical</span><span><i style="background:var(--warn)"></i>Low</span><span><i style="background:var(--good)"></i>Stable</span><span><i style="background:var(--accent)"></i>Transfer</span></div></div><div>${side}</div></div>`;
+}
+function barsWeeks(){
+  const resc=[420,510,380,640,590,720,810,760].concat([S.rescued||0]),expd=[380,350,420,300,340,260,210,190].concat([S.wasted||0]);
+  const lab=['W-8','W-7','W-6','W-5','W-4','W-3','W-2','W-1','Now'];
+  const W=620,H=230,l=40,b=26,t=10,r=8,mx=Math.max(900,...resc,...expd),ny=Math.ceil(mx/300)*300,pw=(W-l-r)/lab.length,bw=Math.min(20,pw/2-3);
+  let g='';for(let i=0;i<=ny;i+=ny/3){const y=t+(H-t-b)*(1-i/ny);g+=`<line class="gl" x1="${l}" x2="${W-r}" y1="${y}" y2="${y}"/><text x="${l-6}" y="${y+4}" text-anchor="end">${fmt(i)}</text>`}
+  lab.forEach((s,i)=>{const cx=l+pw*i+pw/2,h1=(H-t-b)*resc[i]/ny,h2=(H-t-b)*expd[i]/ny;
+    g+=`<rect x="${cx-bw-1}" y="${H-b-h1}" width="${bw}" height="${h1}" rx="3" fill="var(--accent)" data-tip="${s}: ${fmt(resc[i])} units rescued"/><rect x="${cx+1}" y="${H-b-h2}" width="${bw}" height="${h2}" rx="3" fill="var(--s2)" data-tip="${s}: ${fmt(expd[i])} units expired unused"/><text x="${cx}" y="${H-8}" text-anchor="middle">${s}</text>`});
+  return `<div class="legend"><span><i style="background:var(--accent)"></i>Units rescued by transfer</span><span><i style="background:var(--s2)"></i>Units expired unused</span></div><div class="chartbox"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px" role="img" aria-label="Weekly units rescued versus expired">${g}</svg></div>`;
+}
+function vAnalytics(C){
+  const byDrug=DRUGS.map(d=>({d,v:S.pairs.filter(p=>p.drug===d.id).reduce((a,p)=>a+fefo(p).filter(x=>x.left<=90).reduce((s,x)=>s+x.risk,0),0)})).sort((a,b)=>b.v-a.v).slice(0,7);
+  const mx=Math.max(1,...byDrug.map(x=>x.v));
+  const wr=byDrug.map(x=>`<div class="hbar"><span>${x.d.name}</span><span class="t"><i style="width:${x.v/mx*100}%;background:var(--accent)" data-tip="${fmt(x.v)} ${x.d.unit} likely unused within 90 days"></i></span><span class="v">${fmt(x.v)}</span></div>`).join('');
+  const fc=FACS.map(f=>({f,c:med(S.pairs.filter(p=>p.fac===f.id).map(cover))})).sort((a,b)=>a.c-b.c);
+  const cb=fc.map(x=>{const k=x.c<2?'crit':x.c<RESERVE?'short':'ok';return `<div class="hbar"><span>${x.f.short}</span><span class="t"><i style="width:${Math.min(100,x.c/30*100)}%;background:var(--${k==='ok'?'good':k==='crit'?'crit':'warn'})" data-tip="Median ${fx(x.c)} days of cover"></i><u style="left:${RESERVE/30*100}%"></u></span><span class="v">${fx(x.c)} d</span></div>`}).join('');
+  const total=S.rescued+S.wasted, rate=total?S.rescued/total:0;
+  return pageHead('Supply-chain analytics','How much stock is moving, how much is being lost, and how evenly cover is spread across the network.')+
+  `<div class="kpis">${kpi('Units delivered',fmt(S.rescued),'since this run started')}${kpi('Units expired',fmt(S.wasted),'since this run started')}${kpi('Rescue ratio',total?Math.round(rate*100)+'%':'—','delivered ÷ (delivered + expired)')}${kpi('Open need',fmt(C.m.need),'units across all shortages')}</div>
+  <div class="grid g2"><div class="panel"><div class="panel-head"><h3>Weekly rescue versus waste</h3></div>${barsWeeks()}<p class="note" style="margin:6px 0 0">Past weeks are simulated history. “Now” is this run.</p></div>
+  <div class="panel"><div class="panel-head"><h3>Likely to expire unused, 90 days</h3></div>${wr}</div>
+  <div class="panel"><div class="panel-head"><h3>Median days of cover by facility</h3></div>${cb}<p class="note" style="margin:6px 0 0">Dashed line marks the ${RESERVE}-day reserve.</p></div>
+  <div class="panel"><div class="panel-head"><h3>Matching summary</h3></div>
+    <div class="row"><div class="grow">Proposed transfers</div><b class="mono">${C.m.lines.length}</b></div>
+    <div class="row"><div class="grow">Units proposed to move</div><b class="mono">${fmt(C.m.alloc)}</b></div>
+    <div class="row"><div class="grow">Critical need met</div><b class="mono">${Math.round(C.m.critMet*100)}%</b></div>
+    <div class="row"><div class="grow">Fairness index</div><b class="mono">${fx(C.m.jain,2)}</b></div></div></div>`;
+}
+function vForecast(C){
+  const rows=S.pairs.map(p=>({p,pr:project(p,14)})).filter(x=>x.pr.hit!=null&&cover(x.p)>=RESERVE).sort((a,b)=>a.pr.hit-b.pr.hit);
+  const sel=rows.find(x=>x.p.fac+'|'+x.p.drug===S.selP)||rows[0];
+  const list=rows.map(x=>{const key=x.p.fac+'|'+x.p.drug,tr=x.pr.slope;return `<tr style="cursor:pointer" data-act="selP" data-id="${key}" ${sel&&sel.p===x.p?'class="sev-short"':''}><td>${D(x.p.drug).name}</td><td>${facName(x.p.fac)}</td><td class="n">${fx(cover(x.p))}</td><td class="n">${tr>=0?'+':''}${fx(tr*100)}%/d</td><td class="n">${chip(x.pr.hit<=5?'crit':'short','in '+x.pr.hit+' d')}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">No stable facility is projected to fall below its reserve in 14 days.</td></tr>';
+  let chart='<div class="empty">Nothing to chart.</div>';
+  if(sel){const pr=project(sel.p,21),W=560,H=240,l=46,b=26,t=12,r=12,mxv=Math.max(...pr.pts.map(q=>q.stock),1)*1.1,X=i=>l+(W-l-r)*i/21,Y=v=>t+(H-t-b)*(1-v/mxv);
+    const resv=pr.pts.map(q=>q.use*RESERVE);
+    let g='';for(let i=0;i<=3;i++){const v=mxv*i/3,y=Y(v);g+=`<line class="gl" x1="${l}" x2="${W-r}" y1="${y}" y2="${y}"/><text x="${l-6}" y="${y+4}" text-anchor="end">${fmt(v)}</text>`}
+    for(let i=0;i<=21;i+=7)g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle">${i?'+'+i+' d':'today'}</text>`;
+    const line=pr.pts.map((q,i)=>`${i?'L':'M'}${X(q.t)},${Y(q.stock)}`).join(''),area=line+`L${X(21)},${Y(0)}L${X(0)},${Y(0)}Z`,thr=resv.map((v,i)=>`${i?'L':'M'}${X(i)},${Y(v)}`).join('');
+    const hp=pr.pts[pr.hit]||pr.pts[0];
+    g+=`<path d="${area}" fill="var(--accent)" opacity=".12"/><path d="${thr}" fill="none" stroke="var(--crit)" stroke-width="1.5" stroke-dasharray="5 4"/><path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+    if(pr.hit!=null)g+=`<circle cx="${X(hp.t)}" cy="${Y(hp.stock)}" r="5" fill="var(--crit)" stroke="var(--surface)" stroke-width="2"/>`;
+    pr.pts.forEach(q=>{g+=`<rect x="${X(q.t)-W/44}" y="${t}" width="${W/22}" height="${H-t-b}" fill="transparent" data-tip="${q.t?'+'+q.t+' d':'Today'}: ${fmt(q.stock)} ${unit(sel.p.drug)} · ${fx(q.stock/Math.max(q.use,.05))} days of cover"/>`});
+    chart=`<div class="legend"><span><i style="background:var(--accent)"></i>Projected stock</span><span><i style="background:var(--crit)"></i>${RESERVE}-day reserve at projected use</span></div><div class="chartbox"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:380px" role="img" aria-label="Projected stock">${g}</svg></div>`}
+  return pageHead('Predicted shortages',`Facilities that look stable today but are projected to drop below ${RESERVE} days of cover within 14 days. Projection extends the last 10 days of use as a straight line and includes transfers already on the way.`)+
+  `<div class="grid g-main" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><div class="panel tbl"><table><thead><tr><th>Medicine</th><th>Facility</th><th class="n">Cover now</th><th class="n">Use trend</th><th class="n">Below reserve</th></tr></thead><tbody>${list}</tbody></table></div>
+  <div class="panel"><div class="panel-head"><h3>${sel?D(sel.p.drug).name+' at '+facName(sel.p.fac):'Projection'}</h3></div>${chart}</div></div>`;
+}
+
+/* ---------- alerts panel ---------- */
+function renderPanel(C){
+  const al=[];
+  C.crit.slice(0,6).forEach(p=>al.push(['crit','Critical',`${D(p.drug).name} at ${facName(p.fac)}: ${fx(cover(p))} days left.`]));
+  C.exp.filter(x=>x.left<=21&&x.risk>=1).slice(0,4).forEach(x=>al.push(['short','Expiring',`${fmt(x.risk)} ${unit(x.p.drug)} of ${D(x.p.drug).name} at ${facName(x.p.fac)} expire in ${x.left} d.`]));
+  const pf=S.pairs.map(p=>({p,pr:project(p,14)})).filter(x=>cover(x.p)>=RESERVE&&x.pr.hit!=null&&x.pr.hit<=7).slice(0,3);
+  pf.forEach(x=>al.push(['short','Predicted',`${D(x.p.drug).name} at ${facName(x.p.fac)} projected low in ${x.pr.hit} d.`]));
+  const evs=S.events.slice(0,12);
+  $('panel').innerHTML=`<div class="panel-head"><h2>Notifications</h2><button class="btn sm" data-act="bell">Close</button></div>
+   <h3 style="margin:6px 0">Needs attention</h3>${al.map(a=>`<div class="item">${chip(a[0],a[1])}<span>${a[2]}</span></div>`).join('')||'<div class="empty">All clear.</div>'}
+   <h3 style="margin:16px 0 6px;display:flex;justify-content:space-between;align-items:center">Activity <button class="btn sm" data-act="markread">Mark read</button></h3>${evs.map((e,i)=>`<div class="item" style="${i<S.events.length-S.evRead?'':'opacity:.6'}">${chip(e.kind==='info'?'neutral':e.kind,'Day '+e.day)}<span>${e.text}</span></div>`).join('')}`;
+  return al.length+Math.max(0,S.events.length-S.evRead);
+}
+
+/* ---------- render ---------- */
+function render(partial){
+  const C=derive();
+  $('day').textContent=`Day ${S.day} · ${dateStr(0)}`;
+  $('play').textContent=S.playing?'Pause':'Play';$('play').setAttribute('aria-pressed',S.playing);
+  const cnt={shortages:C.crit.length,matching:C.m.lines.length,transfers:C.act.length};
+  $('tabs').innerHTML=TABS.map(([id,l])=>`<button data-act="tab" data-id="${id}" ${S.tab===id?'aria-current="true"':''}>${l}${cnt[id]?`<span class="cnt">${cnt[id]}</span>`:''}</button>`).join('');
+  const bn=renderPanel(C);$('bellN').textContent=bn;$('bellN').style.display=bn?'':'none';
+  const V={overview:vOverview,inventory:vInventory,shortages:vShortages,surplus:vSurplus,expiring:vExpiring,matching:vMatching,transfers:vTransfers,network:vNetwork,analytics:vAnalytics,forecast:vForecast}[S.tab];
+  const v=$('view');
+  if(partial&&S.tab==='inventory'&&$('invBody')){$('invBody').innerHTML=invRows();return}
+  const y=window.scrollY;v.innerHTML=V(C);
+  if(!partial)window.scrollTo(0,y);
+  const q=$('fQ');
+  if(q){q.oninput=e=>{S.q=e.target.value;$('invBody').innerHTML=invRows()};$('fFac').onchange=e=>{S.fac=e.target.value;render()};$('fStat').onchange=e=>{S.stat=e.target.value;render()}}
+}
+let timer=null;
+function setPlay(on){S.playing=on;clearInterval(timer);if(on)timer=setInterval(()=>{tick();render()},3500);render()}
+
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const a=el.dataset.act,id=el.dataset.id;
+  if(a==='tab'){S.tab=id;window.scrollTo(0,0);try{history.replaceState(null,'','#'+id)}catch(_){}render()}
+  else if(a==='fac'){S.fac=id;S.stat='all';S.q='';S.tab='inventory';window.scrollTo(0,0);render()}
+  else if(a==='step'){tick();render()}
+  else if(a==='play')setPlay(!S.playing);
+  else if(a==='reset'){const was=S.playing;build();S.playing=was;render()}
+  else if(a==='bell'){$('panel').hidden=!$('panel').hidden}
+  else if(a==='markread'){S.evRead=S.events.length;render()}
+  else if(a==='mode'){S.mode=id;render()}
+  else if(a==='approve'){const l=S.props[+el.dataset.i];if(l){const t=approve([l]);S.selT=t.id;render()}}
+  else if(a==='approveAll'){if(S.props.length){const t=approve(S.props);S.selT=t.id;S.tab='transfers';window.scrollTo(0,0);render()}}
+  else if(a==='selT'){S.selT=id;render()}
+  else if(a==='selN'){S.sel=id;render()}
+  else if(a==='selP'){S.selP=id;render()}
+  else if(a==='copy'){
+    const txt=$('csv').textContent,done=m=>{$('copied').textContent=m};
+    const fallback=()=>{const r=document.createRange();r.selectNodeContents($('csv'));const s=getSelection();s.removeAllRanges();s.addRange(r);done('Press Ctrl/Cmd+C to copy the selected CSV.')};
+    try{navigator.clipboard.writeText(txt).then(()=>done('Copied to clipboard.'),fallback)}catch(_){fallback()}
+  }
+});
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('g.node')){e.preventDefault();S.sel=e.target.dataset.id;render()}});
+const tip=$('tip');
+document.addEventListener('mousemove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(t){tip.textContent=t.dataset.tip;tip.style.display='block';const w=tip.offsetWidth;tip.style.left=Math.min(innerWidth-w-8,e.clientX+12)+'px';tip.style.top=(e.clientY+14)+'px'}else tip.style.display='none'});
+
+build();
+
+window.__MS={S:()=>S,computeMatches,tick,render,derive,build,approve,project};
+})();
+</script>
+
+</body></html>
